@@ -1,0 +1,245 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<style type="text/css">
+/*头像*/
+.user-head-uplod{width: 120px;height: 120px;border-radius: 5px;overflow: hidden;
+background: url("image/user.jpg") no-repeat; background-size:120px 120px;
+position: relative;margin:0 auto; }
+.user-head-uplod img{width: 30px;height: 30px;display: block; position: absolute;
+left: calc(50% - 15px);top:calc(50% - 30px);cursor: pointer;z-index: 998; }
+.user-head-uplod input{width: 100%;height: 100%; opacity: 0;cursor: pointer;z-index: 999;position: absolute;}
+.user-head-uplod .tip-word{position: absolute;left: calc(50% - 38px); top:calc(50% + 10px);
+cursor: pointer; color: #fff;z-index: 998;font-size:15px; }
+
+/*图片裁剪*/
+#layerdiv{width:100%;height:100%;position:fixed;z-index:1000;top:0; 
+background:black;top:0;background: rgba(0,0,0,0.5);}
+.cut_box{width: 30%;height: 80%;background-color: #fff;margin:0 auto;
+padding-top: 30px; margin-top: 5%;}
+.cut_box h4{margin:0 0 6px 0;text-align: center;color: #555;}
+.cut_box .tip{text-align: center;color: #999;margin-bottom: 20px;}
+.cut_box .img-room{display: block;cursor: move;
+margin-left: auto; margin-right: auto;background:#f7f8fa;}
+.slidebar-box{position: relative;}
+.slidebar{width: 230px;height: 5px;background-color: #efefef;
+margin: 0 auto;margin-top: 30px;position: relative;border-top-left-radius:5px;
+border-bottom-left-radius:5px;border-top-right-radius:5px;border-bottom-right-radius:5px;}
+.slidebar div{position: absolute;left:0;width: 12px;height: 12px;
+background-color: #ccc;border-radius: 50%;top: -4px;cursor: pointer; }
+#layerdiv .subtn{width: 250px;height: 35px;line-height: 35px;
+margin: 0 auto; margin-top: 30px;}
+.resize1{width: 18px;height: 18px;position: absolute;left:65px;top: -8px;}
+.resize2{width: 22px;height: 22px;position: absolute;right:60px;top: -11px;}
+.cut_box .close{position: absolute;top: -23px;right: 10px;font-size: 13px; color: #999;cursor: pointer;}   
+.subtn{background-color: #3ca5f6; text-align: center;font-size: 15px;color: #eee;
+ cursor: pointer; border-radius: 3px;}
+ .make-relative{position: relative;}
+</style>
+<title>裁剪图片</title>
+</head>
+<body>
+	<div>
+        <div class="user-head-uplod">
+            <input type="file" name="" id="head" onchange="setImagePreview(this.id);">
+            <img src="image/camera-1.png">
+            <div class="tip-word">更换头像</div>
+        </div>       
+	</div>
+<script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.8.0.js"></script>
+<script type="text/javascript">
+    //图片上传预览
+    function setImagePreview(id) {
+        //文件上传input对象
+        var docObj = document.getElementById(id);
+        if (docObj.files) {
+            var imgurl = window.URL.createObjectURL(docObj.files[0]);
+                    layerShow(imgurl);
+        }
+    }
+    function layerShow(imgurl){
+        var layerdiv = "<div id='layerdiv'></div>";
+        $("html").append(layerdiv);
+        var cut_box = "<div class='cut_box'>";
+        cut_box += "<div class='make-relative'><span class='close' onclick='closeCutbox();'>关闭</span></div>"
+        cut_box += "<h4>编辑图片</h4><div class='tip'>调整头像尺寸和位置</div>";
+        cut_box += "<canvas class='img-room' id='img-room' width='250px' height='250px'></canvas>";
+        cut_box +="<div class='slidebar-box'>"
+        cut_box +="<img src='image/resize.png' class='resize1'>"
+        cut_box += "<div class='slidebar' id='slidebar'><div id='slideball'></div></div>";
+        cut_box += "<img src='image/resize.png' class='resize2'>"
+        cut_box += "</div>"
+        cut_box += "<div class='subtn' onclick='cutImg();'>保存</div>"
+        cut_box += "</div>";
+        $("#layerdiv").append(cut_box);
+        var canvas = document.getElementById('img-room');
+        var slidebar = document.getElementById('slidebar');
+        if ( ! canvas || ! canvas.getContext ) { return false; }   
+            var ctx = canvas.getContext('2d');
+            var img = new Image;
+            img.src = imgurl;
+            var imgW = 0;
+            var imgH = 0;
+            img.onload = function(){
+				var zoom = img.width / img.height;
+				imgW = 160*zoom;
+				if(imgW<160){
+					imgW = 160;
+					zoom =1;
+                }
+                imgH = 160;
+                var x = 125-imgW/2;
+                //绘图数据包
+                ctxData = {ctx:ctx,obj:img,x:x,y:45,w:imgW,h:imgH,zoom:zoom};
+                ondraw(ctxData);
+                canvas.onmousedown = mouseDown;
+                slidebar.onmousedown = mouseBarDown;
+            }
+        }
+        function ondraw(data){
+            data.ctx.fillStyle = 'rgba(247, 248, 250, 1)';
+            data.ctx.fillRect(0,0,250,250);
+			//参数1：要绘制的图片对象 参数2-3：图片上的xy起点
+            //参数4-5:要截取的图片宽-高。
+            //参数6-7：画布上的xy起点//参数8-9最终截取的图片大小。
+            data.ctx.drawImage(data.obj,data.x,data.y,data.w,data.h);
+            data.ctx.fillStyle = 'rgba(239, 239, 239, 0.7)';
+            data.ctx.fillRect(0,0,45,250);
+            data.ctx.fillRect(45,0,160,45);
+            data.ctx.fillRect(45,205,160,45);
+            data.ctx.fillRect(205,0,45,250);
+        }
+        //鼠标在canvas按下时执行的事件
+        var mouseDown = function(ev){
+            //获取事件对象
+            var oEvent = ev||event;
+            var startX = oEvent.clientX;
+            var startY = oEvent.clientY;
+            document.onmousemove = function(ev){
+				var oEvent = ev||event;
+                var moveX = oEvent.clientX - startX;
+                var moveY = oEvent.clientY - startY;
+                startX = oEvent.clientX;
+                startY = oEvent.clientY;
+                if(moveX < 0){
+                    if(ctxData.w < (205-(moveX+ctxData.x))){
+                        var x = 205-ctxData.w;
+                    }else{
+                        var x = moveX+ctxData.x;
+                    }
+                }else{
+                    if((ctxData.x+moveX)>45){
+                        var x = 45;
+                    }else{
+                        var x = ctxData.x +moveX;
+                    }
+                }
+                if(moveY < 0){
+                    if(ctxData.h < (205-(moveY+ctxData.y))){
+                        var y = 205-ctxData.h;
+                    }else{
+                        var y = moveY+ctxData.y;
+                    }
+                }else{
+                    if((ctxData.y+moveY)>45){
+						var y = 45;
+                    }else{
+                        var y = ctxData.y +moveY;
+                    }
+                }
+                ctxData = {ctx:ctxData.ctx,obj:ctxData.obj,x:x,y:y,w:ctxData.w,h:ctxData.h,zoom:ctxData.zoom};
+                ondraw(ctxData);
+            }
+            document.onmouseup = function(){
+                document.onmousemove = null;
+                document.onmouseup = null;
+            }     
+        }
+        //鼠标在slidebar按下时执行的事件
+        var mouseBarDown = function(ev){
+            document.onselectstart = function(){return false;};
+            var oEvent = ev||event;
+            var ball = document.getElementById('slideball');
+            var startX = oEvent.clientX;
+            var startY = oEvent.clientY;
+            var bar_left = $('#slidebar').offset().left;
+            var bar_right = $('#slidebar').offset().left+230;
+            var ball_postion = startX - bar_left - 6;
+            if(ball_postion<0){ball_postion = 0;}
+            else if(ball_postion>218){ball_postion = 218;}
+            ball.style.left = ball_postion+"px";
+            ctxDataCount(ball_postion)
+            document.onmousemove = function(ev){
+                var oEvent = ev||event;
+                if(oEvent.clientX<bar_left||oEvent.clientX>bar_right){return;}
+                var moveX = oEvent.clientX - startX;
+                var moveY = oEvent.clientY - startY;
+                startX = oEvent.clientX;
+                startY = oEvent.clientY;
+                if(moveX > 0){
+                    if(ball.offsetLeft+moveX>218){
+                        var x = 218;
+                    }else{
+                        var x = ball.offsetLeft+moveX;
+                    }
+                }else{
+                    if(ball.offsetLeft+moveX<0){
+                        var x = 0;
+                    }else{
+                       var x = ball.offsetLeft+moveX;
+					}
+				}
+                ctxDataCount(x);
+                ball.style.left = x+"px";
+            }
+            document.onmouseup = function(){
+				document.onmousemove = null;
+				document.onmouseup = null;
+            }
+        }
+        function ctxDataCount(x){
+            var h = 160*(1+x/218);
+            var w = h*ctxData.zoom;
+            var ctxDataX = ctxData.x+(ctxData.w-w)/2;
+            var ctxDataY = ctxData.y+(ctxData.h-h)/2;
+            if(ctxDataX>45){
+                ctxDataX=45;
+            }else if(ctxDataX<(205-w)){
+                ctxDataX = 205-w;
+            }
+            if(ctxDataY>45){
+                ctxDataY=45;
+            }else if(ctxDataY<(205-h)){
+                ctxDataY = 205-h;
+            }
+            ctxData = {ctx:ctxData.ctx,obj:ctxData.obj,x:ctxDataX,y:ctxDataY,w:w,h:h,zoom:ctxData.zoom};
+            ondraw(ctxData);
+        }
+        function cutImg(){
+            var scaleX =  ctxData.obj.width/ctxData.w;
+            var scaleY =  ctxData.obj.height/ctxData.h;
+            var x = 45 - ctxData.x;
+            var y = 45 - ctxData.y;
+            x = x*scaleX;
+            y = y*scaleY;
+            //参数1：要绘制的图片对象 参数2-3：图片上的xy起点
+            //参数4-5:要截取的图片宽-高。
+            //参数6-7：画布上的xy起点//参数8-9最终截取的图片大小。
+            ctxData.ctx.fillStyle = 'rgba(239, 239, 239, 1)';
+			var canvas = document.getElementById('img-room');
+            canvas.width = 160;
+            canvas.height = 160;
+            ctxData.ctx.drawImage(ctxData.obj,x,y,160*scaleX,160*scaleY,0,0,160,160);
+			var base64Str = canvas.toDataURL("image/png");
+			$(".slidebar-box").hide();
+			$(".subtn").hide();
+			alert(base64Str)
+			
+		}
+        function closeCutbox(){
+            $("#layerdiv").remove();
+        }
+</script>
+</body>
+</html>
